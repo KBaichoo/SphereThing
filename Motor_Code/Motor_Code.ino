@@ -21,6 +21,7 @@ void arm(){
   }
   setSpeed(0);
   
+  delay(2000); //delay 1 second,  some speed controllers may need longer
 }
 
 void setSpeed(int speed){
@@ -41,6 +42,8 @@ void switchDir()
              digitalWrite(RELAY, LOW);
 }
 
+  /*int angle = map(speed, 0, 100, 0, 180);*/
+
 void setup()
 {
   pinMode(13, OUTPUT);
@@ -54,7 +57,6 @@ void loop()
   int speed;
   digitalWrite(13, HIGH);
   
-  
   for(speed = 20; speed <= 70; speed+=10)
   {
       setSpeed(speed);
@@ -65,6 +67,7 @@ void loop()
       setSpeed(0);
       delay(5000);
   }
-  delay(1000);  
+  
+  delay(5000); // stop the motor for 5 seconds
   
 } 
