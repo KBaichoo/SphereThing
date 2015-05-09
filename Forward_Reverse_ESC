@@ -1,77 +1,111 @@
 #include <Servo.h>
 
-Servo myservo;
+Servo myservo1;
+Servo myservo2;
+Servo myservo3;
+
+char myservo1_ON = 'a';
+char myservo2_ON = 'b';
+char myservo3_ON = 'c';
+char emergencyBrake = 'x';
+char turnAllMotorsOn = 'd';
 
 void arm(){
   // arm the speed controller, modify as necessary for your ESC  
-  setSpeed(0);
-  delay(1000); //delay 1 second,  some speed controllers may need longer
+  setSpeed(0, 'a');
+  setSpeed(0, 'b');
+  setSpeed(0, 'c');
+  delay(1000); //delay 1 second, some speed controllers may need longer
   
   // sweep up from 0 to to maximum speed in 20 seconds
   int speed;
   //not high enough to start a disturbance
   for(speed = 0; speed < 100; speed += 20) {
-    setSpeed(speed);
-    delay(1000);
+      setSpeed(speed, 'a');
+      setSpeed(speed, 'b');
+      setSpeed(speed, 'c');
+      delay(1000);
   }
   // sweep back down to 0 speed.
   for(speed = 100; speed > 0; speed -= 20) {
-    setSpeed(speed);
-    delay(1000);
+      setSpeed(speed, 'a');
+      setSpeed(speed, 'b');
+      setSpeed(speed, 'c');
+      delay(1000);
   }
 }
 
-void setSpeed(int speed){
+void setSpeed(int speed, char servoNum){
   // speed is from 0 to 100 where 0 is off and 100 is maximum speed
   //the following maps speed values of 0-100 to angles from 0-180,
   // some speed controllers may need different values, see the ESC instructions
   int angle = map(speed, 0, 100, 0, 180);
-  myservo.write(angle);   
-// myservo1.write(angle); 
+  if(servoNum == 'a')
+    myservo1.write(angle);
+  else if(servoNum == 'b')
+    myservo2.write(angle);
+  else
+    myservo3.write(angle);
 }
 
 void setup()
 {
- // pinMode(0, OUTPUT);
-  myservo.attach(10);
-//  myservo1.attach(6);
-
-  arm();  
+  myservo1.attach(0);
+  myservo2.attach(1);
+  myservo3.attach(2);
+  Serial.begin(57600);
+  Serial.setTimeout(25);
+  arm();
 }
 
 
 void loop()
 {
-  int speed;
-  
-   delay(1000);
-  //runs revs outside of arming!
-  /*for(speed = 20; speed <= 60; speed += 20) {
-    setSpeed(speed);
-    delay(5000);
-    setSpeed(0);
-    delay(3000);
-  }*/
-  Serial.print("Starting loop");
-  /*for(int i = 90; i > 0; i -= 10){
-  myservo.write(i);
-  delay(2000);  
-}*/
-myservo.write(60);
-delay(10000);
-myservo.write(90);
-delay(10000);
-myservo.write(120);
-/*  for(int i = 90; i < 180; i += 10){
-  myservo.write(i);
-  delay(2000);  
-}*/
-  
-  
-  
-  /*setSpeed(20);
-  delay(2000);*/
-  
-  setSpeed(0);  
-  delay(3000); // stop the motor for 5 seconds
+  if(Serial.available() > 0)
+  {
+    char state = Serial.read();
+    if(state != emergencyBrake && ! (state == myservo1_ON || state == myservo2_ON || state == myservo3_ON))
+    {
+      Serial.print("I have received: ");
+      Serial.print(ch);
+      incomingString += ch;
+    }
+  }
+  else if(state == myservo1_ON || state == myservo2_ON || state == myservo3_ON || state == turnAllMotorsOn)
+  {
+    int val = incomingString.toInt();
+    Serial.println("Printing the value: ");
+    Serial.println(val);
+    if( val > -1 && val <= 100)
+    {
+      Serial.println("Value is between 0 and 180");
+      if(ch != turnAllMotorsOn)
+      {
+        //just turn one motor on.
+        Serial.print("Setting speed to Servo: ");
+        Serial.println(val);
+        setSpeed(val, state);
+      }
+      else
+      {
+        Serial.println(val);
+        setSpeed(val, myservo1_ON);
+        setSpeed(val, myservo1_ON);
+        setSpeed(val, myservo3_ON);
+      }
+    }
+    else
+    {
+      Serial.println("Value is NOT between 0 and 180");
+      Serial.println("Error with the input");
+    }
+    incomingString = "";
+  }
+  else if(state == emergencyBrake)
+  {
+    //emergency exit;
+    setSpeed(0, myservo1_ON);
+    setSpeed(0, myservo2_ON);
+    setSpeed(0, myservo3_ON);
+  }
 } 
