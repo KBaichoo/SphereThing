@@ -119,7 +119,7 @@ void loop()
                 {
                     Serial.println(val);
                     setSpeed(val, myservo1_ON);
-                    setSpeed(val, myservo1_ON);
+                    setSpeed(val, myservo2_ON);
                     setSpeed(val, myservo3_ON);
                 }
             }
