@@ -1,0 +1,166 @@
+#include <SoftwareSerial.h>
+
+SoftwareSerial mySerial(10, 11); // RX, TX
+
+#include <Servo.h>
+
+Servo myservo1;
+Servo myservo2;
+Servo myservo3;
+Servo myservo4;
+
+String incomingString;
+
+char myservo1_ON = 'a';
+char myservo2_ON = 'b';
+char myservo3_ON = 'c';
+char myservo4_ON = 'd';
+char emergencyBrake = 'x';
+char turnAllMotorsOn = 'd';
+
+void arm(){
+  // arm the speed controller, modify as necessary for your ESC  
+  setSpeed(0, myservo1_ON);
+  setSpeed(0, myservo2_ON);
+  setSpeed(0, myservo3_ON);
+  setSpeed(0, myservo4_ON);
+  delay(1000); //delay 1 second, some speed controllers may need longer
+  
+  // sweep up from 0 to to maximum speed in 20 seconds
+  int speed;
+  //not high enough to start a disturbance
+  for(speed = 0; speed < 20; speed += 5) {
+      setSpeed(speed, myservo1_ON);
+      setSpeed(speed, myservo2_ON);
+      setSpeed(speed, myservo3_ON);
+      setSpeed(speed, myservo4_ON);
+      delay(1000);
+  }
+  // sweep back down to 0 speed.
+}
+
+void setSpeed(int speed, char servoNum){
+  // speed is from 0 to 100 where 0 is off and 100 is maximum speed
+  //the following maps speed values of 0-100 to angles from 0-180,
+  // some speed controllers may need different values, see the ESC instructions
+  if(speed == 0)
+  {
+      if(servoNum == myservo1_ON)
+        myservo1.write(90);
+      else if(servoNum == myservo2_ON)
+        myservo2.write(90);
+      else if(servoNum == myservo3_ON)
+        myservo3.write(90);
+      else
+        myservo4.write(90);
+        
+      return;
+  }
+  
+   
+  if(speed < 0)
+  {  
+      int angleNegative = map(speed, -1, -100, 91, 180);
+      Serial.print("angle neg is");
+      Serial.println(angleNegative); 
+      if(servoNum == myservo1_ON)
+        myservo1.write(angleNegative);
+      else if(servoNum == myservo2_ON)
+        myservo2.write(angleNegative);
+      else if(servoNum == myservo3_ON)
+        myservo3.write(angleNegative);
+      else
+        myservo4.write(angleNegative);
+  }
+  else
+  {
+      int anglePositive = map(speed, 100, 1, 1, 89);
+      Serial.print("angle pos is");
+      Serial.println(anglePositive);
+      if(servoNum == myservo1_ON)
+        myservo1.write(anglePositive);
+      else if(servoNum == myservo2_ON)
+        myservo2.write(anglePositive);
+      else if(servoNum == myservo3_ON)
+        myservo3.write(anglePositive);
+      else
+        myservo4.write(anglePositive);
+  }
+}
+
+void setup()
+{
+  myservo1.attach(3);
+  myservo2.attach(5);
+  myservo3.attach(6);
+  myservo4.attach(9);
+  arm();
+
+
+  // set the data rate for the SoftwareSerial port
+  mySerial.begin(9600);
+  mySerial.println("Hello, world?");
+  
+}
+
+
+void loop()
+{
+    //Communicate with the arduino via bluetooth
+    if(mySerial.available() > 0)
+    {
+        char state = mySerial.read();
+        //Accepts characters until a valid state is read: these states include turning at least one motor on or braking
+        if(state != emergencyBrake && ! (state == myservo1_ON || state == myservo2_ON || state == myservo3_ON || state == myservo4_ON || state == turnAllMotorsOn))
+        {
+            mySerial.print("I have received: ");
+            mySerial.print(state);
+            incomingString += state;
+        }else if(state == myservo1_ON || state == myservo2_ON || state == myservo3_ON || state == myservo4_ON || state == turnAllMotorsOn)
+        {
+            int val = incomingString.toInt();
+            mySerial.println("Printing the value: ");
+            mySerial.println(val);
+            //Determines whether the value that we are providing to the motor
+            if( val >= -100 && val <= 100)
+            {
+                mySerial.println("Value is between 0 and 180");
+                if(state != turnAllMotorsOn)
+                {
+                    //just turn one motor on.
+                    mySerial.print("Setting speed to Servo: ");
+                    mySerial.println(val);
+                    setSpeed(val, state);
+                }
+                else
+                {
+                    mySerial.println(val);
+                    setSpeed(val, myservo1_ON);
+                    setSpeed(val, myservo2_ON);
+                    setSpeed(val, myservo3_ON);
+                    setSpeed(val, myservo4_ON);
+                }
+            }
+            else
+            {
+              mySerial.println("Value is NOT between 0 and 180");
+              mySerial.println("Error with the input");
+            }
+            //clear incoming string after processing
+            incomingString = "";
+        }
+        else if(state == emergencyBrake)
+        {
+            //emergency exit;
+            setSpeed(0, myservo1_ON);
+            setSpeed(0, myservo2_ON);
+            setSpeed(0, myservo3_ON);
+            setSpeed(0, myservo4_ON);
+            //clear incoming string after processing
+            incomingString = "";  
+      } 
+          
+    }
+  
+  }
+
