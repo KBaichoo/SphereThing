@@ -29,6 +29,7 @@ void arm(){
     setSpeed(speed, 'c');
     delay(1000);
   }
+  Bean.setLed(50,0,0);
 }
 
 
@@ -46,24 +47,23 @@ void setSpeed(int speed, char servoNum) {
 }
 
 
-
-
-
 void setup() {
   myservo1.attach(0);
   myservo2.attach(1);
   myservo3.attach(2);
-  Serial.begin(57600);
-  Serial.setTimeout(25);
+  Serial.begin(9600);
+  Serial.setTimeout(20);
   arm();  
+  int level = Bean.getBatteryLevel(); 
+  Serial.print("Battery level%: ");
+  Serial.println(level, DEC);
 }
 
 
 void loop() {
   if(Serial.available() > 0) {
     char ch = Serial.read();
-    if (ch != 'x' &&  !(ch == 'a' || ch == 'b' || ch == 'c')){
-      
+    if (ch != 'x' &&  !(ch == 'a' || ch == 'b' || ch == 'c' || ch == 'd')){
       Serial.print("I have received: ");
       Serial.print(ch);
     
@@ -72,15 +72,14 @@ void loop() {
        int val = incomingString.toInt();
        Serial.println("Printing the value: ");
        Serial.println(val);
-       if(val > -1 && val <= 100)
-       {
+       if(val > -1 && val <= 100){
           Serial.println("Value is between 0 and 180");
           if(ch != 'd'){
             //just turn one motor on.
             Serial.print("Setting speed to Servo: ");
             Serial.println(val);
             setSpeed(val, ch);
-          }else{
+          }else {
             //turn on all motors
             Serial.print("Setting ALL servos to:");
             Serial.println(val);
@@ -89,8 +88,7 @@ void loop() {
             setSpeed(val, 'c'); 
           }
        }
-       else
-       {
+       else {
            Serial.println("Value is NOT between 0 and 180");
            Serial.println("Error with the input");
        }
@@ -101,6 +99,8 @@ void loop() {
       setSpeed(0, 'b');
       setSpeed(0, 'c');
     }
+    
+    Bean.sleep(20);
+    
   }
 }
-
